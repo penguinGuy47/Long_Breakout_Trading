@@ -61,27 +61,50 @@ def captcha_check():
 
 def add_item_to_cart(keywords, size):
     """
-    Handles the process of finding an item, optionally selecting its size, 
-    adding it to the cart, and waiting for confirmation before returning.
+    Searches for an item by its keyword on the collections page. It continuously
+    looks for the item (refreshing every 4000 ms) until either the item is found or
+    30 seconds have passed. If found, the item is clicked, its size is selected (if applicable),
+    and it is added to the cart. If not found within 30 seconds, an error is logged and the function
+    returns so that the next item can be processed.
     """
     try:
-        # Wait for the page to fully load
+        # Ensure the page is fully loaded
         WebDriverWait(driver, 20).until(
             lambda d: d.execute_script('return document.readyState') == 'complete'
         )
-        image = WebDriverWait(driver, 300).until(
-            EC.element_to_be_clickable((By.XPATH, f"//img[@alt='{keywords}']"))
-        )
-        image.click()
-        print(f"Item '{keywords}' selected.")
+
+        start_time = time.time()
+        found = False
+        while time.time() - start_time < 30:
+            try:
+                # Look for the item image based on the keyword
+                image = driver.find_element(By.XPATH, f"//img[contains(@alt, '{keywords}')]")
+                if image.is_displayed() and image.is_enabled():
+                    image.click()
+                    print(f"Item '{keywords}' selected.")
+                    found = True
+                    break
+            except Exception:
+                # Element not found; do nothing and refresh after delay.
+                pass
+
+            print(f"Item '{keywords}' not found.")
+            time.sleep(3)
+            print("Refreshing...")
+            time.sleep(1)
+            driver.refresh()
+
+        if not found:
+            print(f"Error: Could not find '{keywords}' after 30 seconds. Skipping item.")
+            return
 
         # Check if size selection is required
         if size != "One Size":
             try:
                 WebDriverWait(driver, 5).until(
-                    EC.element_to_be_clickable((By.XPATH, '//*[@id="MainContent"]/div[2]/div/div[2]/section/div[1]/div/select'))
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="MainContent"]/div/div/div[2]/section/div[1]/div/select'))
                 )
-                size_selector = driver.find_element(By.XPATH, '//*[@id="MainContent"]/div[2]/div/div[2]/section/div[1]/div/select')
+                size_selector = driver.find_element(By.XPATH, '//*[@id="MainContent"]/div/div/div[2]/section/div[1]/div/select')
                 size_selector.click()
                 time.sleep(0.5)
                 Select(size_selector).select_by_visible_text(size)
@@ -104,7 +127,7 @@ def add_item_to_cart(keywords, size):
         )
         print(f"Item '{keywords}' successfully added to cart.")
     except Exception as e:
-        print(f"Could not add '{keywords}' to cart")
+        print(f"Could not add '{keywords}' to cart: {e}")
 
 
 def click_checkout():
@@ -146,7 +169,6 @@ def fill_info():
         for field, xpath in fields.items():
             input_field = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, xpath)))
             input_field.send_keys(data[field])
-            # time.sleep(random.uniform(0.5, 1))  # Random pause to avoid detection
 
         # Payment Information
         iframe_info = {
@@ -180,7 +202,6 @@ def fill_info():
             else:
                 input_field.send_keys(input_data[field])
 
-            # time.sleep(random.uniform(0.5, 1))  # Random pause
             driver.switch_to.default_content()
 
         print("Checkout information entered.")
@@ -203,6 +224,8 @@ def send_order():
 def buy(items):
     """
     Handles the entire purchase process for multiple items, each with its own size.
+    Navigates to the Supreme collections page, then for each item, searches for it on the page
+    with a 30-second timeout and a 4000ms refresh interval. If found, proceeds to add to cart.
     """
     driver.get("https://us.supreme.com/collections/all")
     captcha_check()
@@ -227,5 +250,4 @@ def buy(items):
     fill_info()
     send_order()
 
-    time.sleep(1000)
-
+    time.sleep(22)
