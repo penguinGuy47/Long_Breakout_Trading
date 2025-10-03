@@ -157,14 +157,14 @@ def fill_info():
             "phone": '//*[@id="TextField5"]'
         }
         data = {
-            "email": "kalbeisawesome@gmail.com",
+            "email": "exampleEmail@gmail.com",
             "first_name": "John",
             "last_name": "Doe",
-            "address": "2202 Grouse Ln",
-            "city": "Rolling Meadows",
+            "address": "123 Test Ln",
+            "city": "Testing Meadows",
             "state": "Illinois",
-            "zip_code": "60008",
-            "phone": "9173858088"
+            "zip_code": "60007",
+            "phone": "1234567890"
         }
         for field, xpath in fields.items():
             input_field = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, xpath)))
